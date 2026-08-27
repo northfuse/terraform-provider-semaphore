@@ -1,6 +1,7 @@
 package provider
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -46,6 +47,24 @@ data "semaphoreui_project_environment" "test" {
   project_id = semaphoreui_project.test.id
   id         = semaphoreui_project_environment.test.id
   depends_on = [semaphoreui_project_environment.test]
+}
+
+data "semaphoreui_project_environment" "by_name" {
+  project_id = semaphoreui_project.test.id
+  name       = semaphoreui_project_environment.test.name
+  depends_on = [semaphoreui_project_environment.test]
+}`
+}
+
+func testAccProjectEnvironmentDataSourceConfigNameNotFound() string {
+	return `
+resource "semaphoreui_project" "test" {
+  name = "Project 1"
+}
+
+data "semaphoreui_project_environment" "missing" {
+  project_id = semaphoreui_project.test.id
+  name       = "Does Not Exist"
 }`
 }
 
@@ -72,7 +91,26 @@ func TestAcc_ProjectEnvironmentDataSource_basic(t *testing.T) {
 					resource.TestCheckResourceAttr("data.semaphoreui_project_environment.test", "secrets.1.name", "KEY4"),
 					resource.TestCheckResourceAttr("data.semaphoreui_project_environment.test", "secrets.1.value", ""),
 					resource.TestCheckResourceAttr("data.semaphoreui_project_environment.test", "secrets.1.type", "env"),
+					// Lookup by name resolves to the same environment
+					resource.TestCheckResourceAttrPair("data.semaphoreui_project_environment.by_name", "id", "semaphoreui_project_environment.test", "id"),
+					resource.TestCheckResourceAttr("data.semaphoreui_project_environment.by_name", "name", "Test Environment"),
+					resource.TestCheckResourceAttr("data.semaphoreui_project_environment.by_name", "variables.%", "2"),
+					resource.TestCheckResourceAttr("data.semaphoreui_project_environment.by_name", "environment.%", "2"),
+					resource.TestCheckResourceAttr("data.semaphoreui_project_environment.by_name", "secrets.#", "2"),
 				),
+			},
+		},
+	})
+}
+
+func TestAcc_ProjectEnvironmentDataSource_nameNotFound(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:      testAccProjectEnvironmentDataSourceConfigNameNotFound(),
+				ExpectError: regexp.MustCompile(`project environment with name "Does Not Exist" not found`),
 			},
 		},
 	})

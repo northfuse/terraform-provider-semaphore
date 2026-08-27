@@ -1,8 +1,10 @@
 package provider
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	schemaD "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	schemaR "github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -50,7 +52,14 @@ func ProjectEnvironmentSchema() superschema.Schema {
 					PlanModifiers: []planmodifier.Int64{int64planmodifier.UseStateForUnknown()},
 				},
 				DataSource: &schemaD.Int64Attribute{
-					Required: true,
+					Optional: true,
+					Computed: true,
+					Validators: []validator.Int64{
+						int64validator.ExactlyOneOf(
+							path.MatchRoot("id"),
+							path.MatchRoot("name"),
+						),
+					},
 				},
 			},
 			"project_id": superschema.Int64Attribute{
@@ -70,7 +79,14 @@ func ProjectEnvironmentSchema() superschema.Schema {
 					Required: true,
 				},
 				DataSource: &schemaD.StringAttribute{
+					Optional: true,
 					Computed: true,
+					Validators: []validator.String{
+						stringvalidator.ExactlyOneOf(
+							path.MatchRoot("id"),
+							path.MatchRoot("name"),
+						),
+					},
 				},
 			},
 			"variables": superschema.MapAttribute{
