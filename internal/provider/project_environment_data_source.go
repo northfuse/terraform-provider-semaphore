@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 	apiclient "terraform-provider-semaphoreui/semaphoreui/client"
 	"terraform-provider-semaphoreui/semaphoreui/client/variable_group"
 
@@ -47,6 +48,22 @@ func (d *projectEnvironmentDataSource) Schema(ctx context.Context, _ datasource.
 	resp.Schema = ProjectEnvironmentSchema().GetDataSource(ctx)
 }
 
+// getEnvironmentIDByName resolves a project environment name to its ID via the list endpoint.
+func (d *projectEnvironmentDataSource) getEnvironmentIDByName(projectID int64, name string) (int64, error) {
+	response, err := d.client.VariableGroup.GetProjectProjectIDEnvironment(&variable_group.GetProjectProjectIDEnvironmentParams{
+		ProjectID: projectID,
+	}, nil)
+	if err != nil {
+		return 0, fmt.Errorf("could not read project environments: %s", err.Error())
+	}
+	for _, environment := range response.Payload {
+		if environment.Name == name {
+			return environment.ID, nil
+		}
+	}
+	return 0, fmt.Errorf("project environment with name %q not found", name)
+}
+
 func (d *projectEnvironmentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	var config ProjectEnvironmentModel
 	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
@@ -54,9 +71,22 @@ func (d *projectEnvironmentDataSource) Read(ctx context.Context, req datasource.
 		return
 	}
 
+	environmentID := config.ID.ValueInt64()
+	if config.ID.IsNull() || config.ID.IsUnknown() {
+		id, err := d.getEnvironmentIDByName(config.ProjectID.ValueInt64(), config.Name.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Reading SemaphoreUI Project Environment",
+				err.Error(),
+			)
+			return
+		}
+		environmentID = id
+	}
+
 	response, err := d.client.VariableGroup.GetProjectProjectIDEnvironmentEnvironmentID(&variable_group.GetProjectProjectIDEnvironmentEnvironmentIDParams{
 		ProjectID:     config.ProjectID.ValueInt64(),
-		EnvironmentID: config.ID.ValueInt64(),
+		EnvironmentID: environmentID,
 	}, nil)
 	if err != nil {
 		resp.Diagnostics.AddError(
