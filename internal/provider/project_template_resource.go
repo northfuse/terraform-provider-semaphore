@@ -106,14 +106,17 @@ func (r *projectTemplateResource) ConfigValidators(_ context.Context) []resource
 }
 
 func convertProjectTemplateModelToTemplateRequest(ctx context.Context, template ProjectTemplateModel) *models.TemplateRequest {
-	// SemaphoreUI v2.16+ replaced the singular environment_id with an
-	// environment_ids array. The legacy environment_id is still accepted on
-	// create but is read back as 0; only environment_ids round-trips on GET.
-	envID := template.EnvironmentID.ValueInt64()
+	var envID int64
+	var envIDs []int64
+	if !template.EnvironmentIDs.IsNull() && !template.EnvironmentIDs.IsUnknown() {
+		template.EnvironmentIDs.ElementsAs(ctx, &envIDs, false)
+	} else {
+		envID = template.EnvironmentID.ValueInt64()
+	}
 	model := models.TemplateRequest{
 		ProjectID:               template.ProjectID.ValueInt64(),
 		EnvironmentID:           envID,
-		EnvironmentIds:          []int64{envID},
+		EnvironmentIds:          envIDs,
 		InventoryID:             template.InventoryID.ValueInt64(),
 		RepositoryID:            template.RepositoryID.ValueInt64(),
 		App:                     template.App.ValueString(),
@@ -221,16 +224,9 @@ func (a ByVaultID) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a ByVaultID) Less(i, j int) bool { return a[i].ID < a[j].ID }
 
 func convertTemplateResponseToProjectTemplateModel(ctx context.Context, request *models.Template, prev *ProjectTemplateModel) ProjectTemplateModel {
-	// v2.16+ stores environment in environment_ids[]; legacy environment_id
-	// reads back as 0 even when set. Prefer the array when present.
-	envID := request.EnvironmentID
-	if len(request.EnvironmentIds) > 0 {
-		envID = request.EnvironmentIds[0]
-	}
 	model := ProjectTemplateModel{
 		ID:                      types.Int64Value(request.ID),
 		ProjectID:               types.Int64Value(request.ProjectID),
-		EnvironmentID:           types.Int64Value(envID),
 		InventoryID:             types.Int64Value(request.InventoryID),
 		RepositoryID:            types.Int64Value(request.RepositoryID),
 		App:                     types.StringValue(request.App),
@@ -256,6 +252,21 @@ func convertTemplateResponseToProjectTemplateModel(ctx context.Context, request 
 		model.ViewID = types.Int64Value(request.ViewID)
 	} else {
 		model.ViewID = prev.ViewID
+	}
+
+	// environment_ids is a set, so element order is irrelevant — the API sorts
+	// the list before persisting, but set equality ignores that.
+	switch {
+	case len(request.EnvironmentIds) > 1:
+		model.EnvironmentID = types.Int64Null()
+		environmentIDs, _ := types.SetValueFrom(ctx, types.Int64Type, request.EnvironmentIds)
+		model.EnvironmentIDs = environmentIDs
+	case len(request.EnvironmentIds) == 1:
+		model.EnvironmentID = types.Int64Value(request.EnvironmentIds[0])
+		model.EnvironmentIDs = types.SetNull(types.Int64Type)
+	default:
+		model.EnvironmentID = types.Int64Value(request.EnvironmentID)
+		model.EnvironmentIDs = types.SetNull(types.Int64Type)
 	}
 
 	var arguments []string
