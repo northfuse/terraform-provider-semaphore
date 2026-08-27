@@ -127,7 +127,6 @@ resource "semaphoreui_project_template" "deploy" {
 
 ### Required
 
-- `environment_id` (Number) The environment (variable group) ID that the template uses.
 - `inventory_id` (Number) The inventory ID that the template uses.
 - `name` (String) The display name of the template.
 - `project_id` (Number) <i style="color:red;font-weight: bold">(ForceNew)</i> The project ID that the template belongs to.
@@ -141,6 +140,8 @@ resource "semaphoreui_project_template" "deploy" {
 - `build` (Attributes) Specifies a build type template used to create artifacts. SemaphoreUI doesn't support artifacts out-of-box, it only provides task versioning. You should implement the artifact creation yourself. Ensure that if an attribute is set, these are not set: "[deploy]". (see [below for nested schema](#nestedatt--build))
 - `deploy` (Attributes) Specifies a deploy type template used to deploy artifacts. Each `deploy` template is associated with a build template. Ensure that if an attribute is set, these are not set: "[build]". (see [below for nested schema](#nestedatt--deploy))
 - `description` (String) The description of the template.
+- `environment_id` (Number) The environment (variable group) ID that the template uses.
+- `environment_ids` (Set of Number) The set of environment (variable group) IDs that the template uses. Mutually exclusive with `environment_id`. Ensure that one and only one attribute from this collection is set : `environment_id`, `environment_ids`.
 - `git_branch` (String) Override the git branch defined in the project repository.
 - `playbook` (String) The playbook/script filename. Optional when `app` is `terraform` or `tofu`; required otherwise. Value defaults to ``. Must be a relative path (path/to/playbook) or empty.
 - `suppress_success_alerts` (Boolean) Suppress success alerts. Value defaults to `false`.

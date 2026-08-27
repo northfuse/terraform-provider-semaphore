@@ -47,6 +47,7 @@ data "semaphoreui_project_template" "build" {
 - `deploy` (Attributes) Specifies a deploy type template used to deploy artifacts. Each `deploy` template is associated with a build template. (see [below for nested schema](#nestedatt--deploy))
 - `description` (String) The description of the template.
 - `environment_id` (Number) The environment (variable group) ID that the template uses.
+- `environment_ids` (Set of Number) The set of environment (variable group) IDs that the template uses. Mutually exclusive with `environment_id`.
 - `git_branch` (String) Override the git branch defined in the project repository.
 - `inventory_id` (Number) The inventory ID that the template uses.
 - `playbook` (String) The playbook/script filename. Optional when `app` is `terraform` or `tofu`; required otherwise.
