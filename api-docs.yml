@@ -887,6 +887,30 @@ definitions:
           - $ref: '#/definitions/AnsibleTaskParams'
           - $ref: '#/definitions/TerraformTaskParams'
 
+  # Local patch: upstream points Template.task_params at TaskPrams, but the
+  # server reads template task_params as the flat AnsibleTemplateParams struct
+  # (db/Template.go), so the limit it applies lives at the top level, not
+  # under params.
+  TemplateTaskParams:
+    type: object
+    properties:
+      environment:
+        type: string
+      git_branch:
+        type: string
+      message:
+        type: string
+      arguments:
+        type: string
+      params:
+        allOf:
+          - $ref: '#/definitions/AnsibleTaskParams'
+          - $ref: '#/definitions/TerraformTaskParams'
+      limit:
+        type: array
+        items:
+          type: string
+
   TaskOutput:
     type: object
     properties:
@@ -968,7 +992,7 @@ definitions:
       autorun:
         type: boolean
       task_params:
-        $ref: '#/definitions/TaskPrams'
+        $ref: '#/definitions/TemplateTaskParams'
 
   Template:
     type: object
@@ -1034,7 +1058,7 @@ definitions:
         items:
           $ref: "#/definitions/TemplateVault"
       task_params:
-        $ref: '#/definitions/TaskPrams'
+        $ref: '#/definitions/TemplateTaskParams'
 
   TemplateSurveyVar:
     type: object

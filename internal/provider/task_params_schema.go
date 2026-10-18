@@ -327,6 +327,43 @@ func convertTaskPramsToTaskParamsModel(ctx context.Context, in *models.TaskPrams
 	return out
 }
 
+// convertTaskParamsModelToTemplateTaskParams is the template variant of
+// convertTaskParamsModelToTaskPrams. When running a task, the server reads a
+// template's limit from the top level of task_params, not from params.limit.
+func convertTaskParamsModelToTemplateTaskParams(ctx context.Context, model *TaskParamsModel) *models.TemplateTaskParams {
+	in := convertTaskParamsModelToTaskPrams(ctx, model)
+	if in == nil {
+		return nil
+	}
+	out := &models.TemplateTaskParams{
+		Arguments:   in.Arguments,
+		Environment: in.Environment,
+		GitBranch:   in.GitBranch,
+		Message:     in.Message,
+		Params:      in.Params,
+		Limit:       in.Params.Limit,
+	}
+	out.Params.Limit = nil
+	return out
+}
+
+// convertTemplateTaskParamsToTaskParamsModel is the template variant of
+// convertTaskPramsToTaskParamsModel; ansible.limit is read from the top level.
+func convertTemplateTaskParamsToTaskParamsModel(ctx context.Context, in *models.TemplateTaskParams) *TaskParamsModel {
+	if in == nil {
+		return nil
+	}
+	prams := &models.TaskPrams{
+		Arguments:   in.Arguments,
+		Environment: in.Environment,
+		GitBranch:   in.GitBranch,
+		Message:     in.Message,
+		Params:      in.Params,
+	}
+	prams.Params.Limit = in.Limit
+	return convertTaskPramsToTaskParamsModel(ctx, prams)
+}
+
 func ansibleTaskParamsEmpty(p models.AnsibleTaskParams) bool {
 	return len(p.Tags) == 0 && len(p.SkipTags) == 0 && len(p.Limit) == 0 &&
 		!p.Debug && !p.Diff && !p.DryRun

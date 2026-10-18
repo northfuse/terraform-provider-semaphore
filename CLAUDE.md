@@ -95,6 +95,8 @@ The local `api-docs.yml` is a *patched* copy of the upstream spec from a tagged 
 
 A related response-schema patch also lives in the spec: the single-runner GET responses (`/runners/{runner_id}` and `/project/{project_id}/runners/{runner_id}`) are pointed at `RunnerWithToken` instead of `Runner` so the `runner` / `project_runner` resources can surface `token` and `private_key` on read (both are empty strings for unregistered runners; the list endpoints still return bare `Runner`).
 
+The spec also adds a `TemplateTaskParams` definition (`TaskPrams` plus a top-level `limit`) and points `Template.task_params` / `TemplateRequest.task_params` at it. The server stores template `task_params` as raw JSON and, when running a task, reads it as the flat `AnsibleTemplateParams` struct in `db/Template.go` — so a `params.limit` round-trips fine but is never applied. `convertTaskParamsModelToTemplateTaskParams` moves `ansible.limit` to the top level. The other nested fields (`tags`, `skip_tags`, `debug`, terraform flags, …) are likewise ignored by the server for templates, but are kept as-is to avoid a breaking schema change; integrations genuinely use the nested `TaskPrams` shape.
+
 When bumping `api-docs.yml`, re-import upstream verbatim first (one commit), then re-apply the nullability patches based on which tests fail (a follow-up commit). The two-commit split keeps the diff legible — reviewers can see what came from upstream versus what we patched locally.
 
 ### Template `environment_id` quirk
@@ -111,7 +113,7 @@ The Semaphore API does not honor type changes on secret update operations — on
 
 ## Regenerating code
 
-- **API client** (after `api-docs.yml` changes): `task client`. Requires `swagger` binary from `go-swagger` (`go install github.com/go-swagger/go-swagger/cmd/swagger@latest`).
+- **API client** (after `api-docs.yml` changes): `task client`. Requires `swagger` binary from `go-swagger` (`go install github.com/go-swagger/go-swagger/cmd/swagger@v0.34.0` — newer releases reformat every generated file, so stay on the version the client was generated with).
 - **Docs** (after schema changes): `task generate`. Requires `terraform` in PATH (for `terraform fmt`). CI's `generate` job fails if the resulting diff isn't committed.
 
 ## Tooling notes

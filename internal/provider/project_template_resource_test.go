@@ -812,6 +812,7 @@ func TestAcc_ProjectTemplateResource_taskParams(t *testing.T) {
     ansible = {
       tags      = ["deploy", "db"]
       skip_tags = ["slow"]
+      limit     = ["web1", "web2"]
       diff      = true
     }
   }
@@ -824,6 +825,9 @@ func TestAcc_ProjectTemplateResource_taskParams(t *testing.T) {
 					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.tags.1", "db"),
 					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.skip_tags.#", "1"),
 					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.skip_tags.0", "slow"),
+					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.limit.#", "2"),
+					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.limit.0", "web1"),
+					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.limit.1", "web2"),
 					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.diff", "true"),
 					resource.TestCheckNoResourceAttr("semaphoreui_project_template.test", "task_params.terraform"),
 				),
@@ -840,7 +844,8 @@ func TestAcc_ProjectTemplateResource_taskParams(t *testing.T) {
 				Config: testAccProjectTemplateConfig(nameSuffix, `
   task_params = {
     ansible = {
-      tags = ["only-this"]
+      tags  = ["only-this"]
+      limit = ["db1"]
     }
   }
 `),
@@ -848,6 +853,8 @@ func TestAcc_ProjectTemplateResource_taskParams(t *testing.T) {
 					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.tags.#", "1"),
 					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.tags.0", "only-this"),
 					resource.TestCheckNoResourceAttr("semaphoreui_project_template.test", "task_params.ansible.skip_tags"),
+					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.limit.#", "1"),
+					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.limit.0", "db1"),
 					resource.TestCheckResourceAttr("semaphoreui_project_template.test", "task_params.ansible.diff", "false"),
 				),
 			},
